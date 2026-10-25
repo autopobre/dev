@@ -1,0 +1,45 @@
+name: Publicar dev.autopobre.com.br
+
+# This repository holds no game code: it only gives the test version of Auto-Pobre Racing its own
+# Pages site at dev.autopobre.com.br, an origin of its own (saves and cookies apart from the main
+# link's). The code, its checks and the build live in autopobre/autopobre: the job below calls its
+# "Montar a versao de testes" (.github/workflows/montar-dev.yml), which checks out the chosen version,
+# tests and builds it, and this workflow deploys what comes back. Publishing is manual, as on the main
+# link: Actions -> Publicar dev.autopobre.com.br -> Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      versao:
+        description: 'Qual versão do jogo vai para dev.autopobre.com.br: branch (main), tag (apr-X.Y) ou commit (hash completo, 40 caracteres).'
+        required: true
+        default: main
+
+permissions: {}
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  montar:
+    permissions:
+      contents: read
+      pages: read
+    uses: autopobre/autopobre/.github/workflows/montar-dev.yml@main
+    with:
+      versao: ${{ inputs.versao }}
+
+  publicar:
+    needs: montar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
